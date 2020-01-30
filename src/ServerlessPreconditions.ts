@@ -2,8 +2,8 @@ import {APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda'
 
 export class ServerlessPreconditions {
     private readonly apiEvent: APIGatewayProxyEvent;
-    private retValue: APIGatewayProxyResult;
-    private err: Error | HttpError;
+    private retValue?: APIGatewayProxyResult;
+    private err?: Error | HttpError;
 
     constructor(event: APIGatewayProxyEvent) {
         this.apiEvent = event;
@@ -96,7 +96,10 @@ export class ServerlessPreconditions {
     });
 
     /**
-     * If all params are valid, run F and return it's value
+     * Runs F if no errors have occurred yet.
+     *
+     * Thrown errors will automatically be routed to the catch handler.
+     *
      * @param f
      */
     public then = (f: (event: APIGatewayProxyEvent) => APIGatewayProxyResult) => this.apply(() => {
@@ -105,20 +108,46 @@ export class ServerlessPreconditions {
         }
     });
 
-    public catch = (f: ((err: Error) => any)) => this.apply(() => {
-        if ('statusCode' in this.err) {
+    /**
+     * Runs the error handling code if an exception was thrown.
+     *
+     * This function automatically handles built-in errors such as missing params and such.
+     *
+     * @param f
+     */
+    public catch = (f: ((err: Error) => APIGatewayProxyResult)) => this.apply(() => {
+        if (this.retValue) {
+            return;
+        }
+
+        if (!this.err) {
+            this.retValue = {
+                statusCode: 500,
+                body: "An unknown error occurred"
+            }
+        } else if ('statusCode' in this.err) {
             let e = this.err as HttpError;
             this.retValue = {
                 statusCode: e.statusCode,
                 body: e.message
             }
-        } else if (!this.retValue) {
+        } else {
             this.retValue = f(this.err);
         }
     });
 
+    /**
+     * Finished the object.
+     */
     public build(): APIGatewayProxyResult {
-        return this.retValue
+        if (this.retValue) {
+            return this.retValue
+        } else {
+            return {
+                statusCode: 418,
+                body: "No request was prepared!"
+            }
+        }
     }
 }
 

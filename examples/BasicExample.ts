@@ -1,4 +1,4 @@
-import {APIGatewayProxyEvent} from "aws-lambda";
+import {APIGatewayProxyEvent, APIGatewayProxyResult} from "aws-lambda";
 import {ServerlessPreconditions} from "../src/ServerlessPreconditions";
 
 const headers = {
@@ -13,16 +13,16 @@ export const handler = async (apiEvent: APIGatewayProxyEvent) => new ServerlessP
         return {
             statusCode: 200,
             headers,
-            message: "Hello world"
-        }
+            body: "Hello world"
+        };
     })
-    .catch(err => {
+    .catch((err: Error) => {
         console.error("Error occurred", err);
 
         return {
             statusCode: 500,
             headers,
-            message: "An unknown error occured"
+            body: "An unknown error occured"
         };
     })
     .build();

@@ -24,9 +24,9 @@ describe('ServerlessPreconditions', () => {
             expect(result).to.equal(expectedResult);
             sinon.assert.calledOnce(thenFunc);
             sinon.assert.notCalled(errFunc);
-        })
+        });
 
-        it('executes error function when an exception occurs', () => {
+        it('executes error function when an exception occurs', async () => {
             const expectedResult = {
                 hello: "world"
             };
@@ -34,7 +34,7 @@ describe('ServerlessPreconditions', () => {
             const thenFunc = sinon.stub().throws(expectedResult);
             const errFunc = sinon.stub().returns(expectedResult);
 
-            const result = new ServerlessPreconditions(testEvent)
+            const result = await new ServerlessPreconditions(testEvent)
                 .then(thenFunc)
                 .catch(errFunc)
                 .build();
