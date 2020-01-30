@@ -1,4 +1,4 @@
-import {ServerlessPreconditions} from "./ServerlessPreconditions";
+import {ServerlessHandler} from "./ServerlessHandler";
 import sinon = require("sinon");
 import chai = require("chai");
 import {APIGatewayProxyEvent} from "aws-lambda";
@@ -6,7 +6,7 @@ import {expect} from "chai";
 
 sinon.assert.expose(chai.assert, {prefix: ""});
 
-describe('ServerlessPreconditions', () => {
+describe('ServerlessHandler', () => {
     describe('basic', () => {
         it('only runs then when no error has occurred', () => {
             const expectedResult = {
@@ -16,7 +16,7 @@ describe('ServerlessPreconditions', () => {
             const thenFunc = sinon.stub().returns(expectedResult);
             const errFunc = sinon.spy();
 
-            const result = new ServerlessPreconditions(testEvent)
+            const result = new ServerlessHandler(testEvent)
                 .then(thenFunc)
                 .catch(errFunc)
                 .build();
@@ -34,7 +34,7 @@ describe('ServerlessPreconditions', () => {
             const thenFunc = sinon.stub().throws(expectedResult);
             const errFunc = sinon.stub().returns(expectedResult);
 
-            const result = await new ServerlessPreconditions(testEvent)
+            const result = await new ServerlessHandler(testEvent)
                 .then(thenFunc)
                 .catch(errFunc)
                 .build();
@@ -58,7 +58,7 @@ describe('ServerlessPreconditions', () => {
             const thenFunc = sinon.stub().returns(expectedResult);
             const errFunc = sinon.stub().returns(expectedResult);
 
-            const result = new ServerlessPreconditions(testEvent)
+            const result = new ServerlessHandler(testEvent)
                 .withRequiredPathParam("test")
                 .then(thenFunc)
                 .catch(errFunc)
@@ -81,7 +81,7 @@ describe('ServerlessPreconditions', () => {
             const thenFunc = sinon.stub().returns(expectedResult);
             const errFunc = sinon.stub().returns(expectedResult);
 
-            const result = new ServerlessPreconditions(testEvent)
+            const result = new ServerlessHandler(testEvent)
                 .withRequiredPathParam("test")
                 .then(thenFunc)
                 .catch(errFunc)
@@ -101,7 +101,7 @@ describe('ServerlessPreconditions', () => {
             const thenFunc = sinon.stub().returns(expectedResult);
             const errFunc = sinon.stub().returns(expectedResult);
 
-            const result = new ServerlessPreconditions(testEvent)
+            const result = new ServerlessHandler(testEvent)
                 .withRequiredPathParam("test")
                 .then(thenFunc)
                 .catch(errFunc)

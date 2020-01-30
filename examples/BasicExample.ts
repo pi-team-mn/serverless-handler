@@ -1,14 +1,14 @@
-import {APIGatewayProxyEvent, APIGatewayProxyResult} from "aws-lambda";
-import {ServerlessPreconditions} from "../src/ServerlessPreconditions";
+import {APIGatewayProxyEvent} from "aws-lambda";
+import {ServerlessHandler} from "../src/ServerlessHandler";
 
 const headers = {
     'Content-Type': 'application/json'
 };
 
-export const handler = async (apiEvent: APIGatewayProxyEvent) => new ServerlessPreconditions(apiEvent)
-    .withRequiredPathParams(['path', 'param'])
-    .withSomeQueryParams(['maybe', 'test'])
-    .then((event: APIGatewayProxyEvent) => {
+export const handler = async (apiEvent: APIGatewayProxyEvent) => new ServerlessHandler(apiEvent)
+    .withRequiredPathParams(['path', 'param']) // These are both guaranteed to be present
+    .withSomeQueryParams(['maybe', 'test']) // At least one of these is guaranteed to be present
+    .then(async (event: APIGatewayProxyEvent) => {
         console.log("Write your function here!");
         return {
             statusCode: 200,
@@ -16,7 +16,7 @@ export const handler = async (apiEvent: APIGatewayProxyEvent) => new ServerlessP
             body: "Hello world"
         };
     })
-    .catch((err: Error) => {
+    .catch(async (err: Error) => {
         console.error("Error occurred", err);
 
         return {

@@ -1,9 +1,9 @@
-import {ServerlessPreconditions} from "./ServerlessPreconditions";
+import {ServerlessHandler} from "./ServerlessHandler";
 
 import {APIGatewayProxyResult, APIGatewayProxyEvent} from "aws-lambda";
 
 export {
-    ServerlessPreconditions,
+    ServerlessHandler,
     APIGatewayProxyResult,
     APIGatewayProxyEvent
 }

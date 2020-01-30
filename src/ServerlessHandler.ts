@@ -1,6 +1,6 @@
 import {APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda'
 
-export class ServerlessPreconditions {
+export class ServerlessHandler {
     private readonly apiEvent: APIGatewayProxyEvent;
     private retValue?: APIGatewayProxyResult;
     private err?: Error | HttpError;
@@ -102,9 +102,9 @@ export class ServerlessPreconditions {
      *
      * @param f
      */
-    public then = (f: (event: APIGatewayProxyEvent) => APIGatewayProxyResult) => this.apply(() => {
+    public then = (f: (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>) => this.apply(async () => {
         if (!this.err) {
-            this.retValue = f(this.apiEvent);
+            this.retValue = await f(this.apiEvent);
         }
     });
 
@@ -115,7 +115,7 @@ export class ServerlessPreconditions {
      *
      * @param f
      */
-    public catch = (f: ((err: Error) => APIGatewayProxyResult)) => this.apply(() => {
+    public catch = (f: ((err: Error) => Promise<APIGatewayProxyResult>)) => this.apply(async () => {
         if (this.retValue) {
             return;
         }
@@ -132,7 +132,7 @@ export class ServerlessPreconditions {
                 body: e.message
             }
         } else {
-            this.retValue = f(this.err);
+            this.retValue = await f(this.err);
         }
     });
 
