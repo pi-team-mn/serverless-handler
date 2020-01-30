@@ -5,8 +5,8 @@ export class ServerlessPreconditions {
     private retValue?: APIGatewayProxyResult;
     private err?: Error | HttpError;
 
-    constructor(event: APIGatewayProxyEvent) {
-        this.apiEvent = event;
+    constructor(event: APIGatewayProxyEvent | any) {
+        this.apiEvent = event as APIGatewayProxyEvent;
     }
 
     /**
