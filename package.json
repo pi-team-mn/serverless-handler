@@ -4,13 +4,15 @@
   "author": "David Diks <ddq@mn.nl>",
   "homepage": "https://github.com/pi-team-mn/serverless-handler",
   "license": "ISC",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "files": [
     "src/**"
   ],
   "scripts": {
     "test": "mocha --require ts-node/register src/**.spec.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "deploy": "npm publish --access public",
+    "deploy:test": "npm publish -access public --dry-run"
   },
   "dependencies": {
     "aws-lambda": "^1.0.5",
