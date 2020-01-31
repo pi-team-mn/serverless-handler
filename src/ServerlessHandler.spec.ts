@@ -31,8 +31,8 @@ describe('ServerlessHandler', () => {
                 hello: "world"
             };
             const testEvent: APIGatewayProxyEvent = {} as unknown as APIGatewayProxyEvent;
-            const thenFunc = sinon.stub().throws(expectedResult);
-            const errFunc = sinon.stub().returns(expectedResult);
+            const thenFunc = sinon.stub().rejects(expectedResult);
+            const errFunc = sinon.stub().resolves(expectedResult);
 
             const result = await new ServerlessHandler(testEvent)
                 .then(thenFunc)
