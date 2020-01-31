@@ -66,14 +66,14 @@ export class ServerlessHandler {
                 // If error does not exist, return a 500 unknown error
                 return Promise.resolve({
                     statusCode: 500,
-                    body: "An unknown error occurred"
+                    body: JSON.stringify({message: "An unknown error occurred"})
                 })
             } else if ('statusCode' in err) {
                 // If our error has a statusCode, it's an error we prepared ourselves. Return that exception as a HTTP response
                 let e = err as HttpError;
                 return Promise.resolve({
                     statusCode: e.statusCode,
-                    body: e.message
+                    body: JSON.stringify({message: e.message})
                 })
             } else {
                 // If the error exists but is not a HttpError, let the user handle it
@@ -93,7 +93,7 @@ export class ServerlessHandler {
                 console.error("An unkown error occurred", this.apiEvent, err);
                 return {
                     statusCode: 500,
-                    body: "No request was prepared!"
+                    body: JSON.stringify({message: "No request was prepared!"})
                 }
             });
     }
