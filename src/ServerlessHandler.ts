@@ -25,7 +25,7 @@ export class ServerlessHandler {
      */
     public withRequiredPathParam = (pathParam: string) => this.apply(() => {
         if (!this.aIsInB(pathParam, this.eventPathParamKeys())) {
-            this.retValue = Promise.reject(new HttpError(`Not all path paremeters are present! Required param is ${pathParam}`, 400));
+            this.retValue = Promise.reject(new HttpError(`Not all path parameters are present! Required param is ${pathParam}`, 400));
         }
     });
 

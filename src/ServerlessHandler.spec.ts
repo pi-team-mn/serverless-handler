@@ -1,8 +1,8 @@
 import {ServerlessHandler} from "./ServerlessHandler";
-import sinon = require("sinon");
-import chai = require("chai");
 import {APIGatewayProxyEvent} from "aws-lambda";
 import {expect} from "chai";
+import sinon = require("sinon");
+import chai = require("chai");
 
 sinon.assert.expose(chai.assert, {prefix: ""});
 
@@ -46,7 +46,7 @@ describe('ServerlessHandler', () => {
             expect(result).to.deep.equal(expectedResult);
             sinon.assert.calledOnce(thenFunc);
             sinon.assert.calledOnce(errFunc);
-        })
+        });
     })
 
     describe('withRequiredParam', () => {
@@ -117,5 +117,60 @@ describe('ServerlessHandler', () => {
             sinon.assert.notCalled(thenFunc);
             sinon.assert.notCalled(errFunc);
         })
+    })
+
+    it('Basic Happy Case', async () => {
+        const testEvent = {
+            pathParameters: {
+                administratie: "NVSCHADE",
+            },
+            queryStringParameters: {
+                "testQuery": 1
+            }
+        } as unknown as APIGatewayProxyEvent;
+
+        const result = await new ServerlessHandler(testEvent)
+            .withRequiredPathParam("administratie")
+            .withSomeQueryParams(['testQuery'])
+            .then(async _ => {
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                        text: 'We made it'
+                    })
+                }
+            })
+            .build();
+
+        expect(result.statusCode).to.equal(200);
+        expect(result)
+    })
+
+    it('Basic Sad Case', async () => {
+        const testEvent = {
+            pathParameters: {
+                administratie: "NVSCHADE",
+            },
+            queryStringParameters: {
+                "testQuery": 1
+            }
+        } as unknown as APIGatewayProxyEvent;
+
+        const result = await new ServerlessHandler(testEvent)
+            .withRequiredPathParam("administratie")
+            .withSomeQueryParams(['testQuery'])
+            .then(async _ => {
+                return Promise.reject({message: "test"})
+            })
+            .catch(async _ => {
+                return {
+                    statusCode: 418,
+                    body: "I'm a teapot"
+                }
+            })
+            .build();
+
+        expect(result.statusCode).to.equal(418);
+        expect(result)
     })
 });
