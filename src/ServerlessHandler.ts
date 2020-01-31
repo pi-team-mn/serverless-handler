@@ -4,8 +4,6 @@ export class ServerlessHandler {
     private readonly apiEvent: APIGatewayProxyEvent;
     // @ts-ignore
     private retValue: Promise<APIGatewayProxyResult>;
-    // @ts-ignore
-    private err: Promise<Error | HttpError>;
 
     constructor(event: APIGatewayProxyEvent | any) {
         this.apiEvent = event as APIGatewayProxyEvent;
@@ -17,7 +15,7 @@ export class ServerlessHandler {
      */
     public withRequiredPathParams = (pathParams: string[]) => this.apply(() => {
         if (!pathParams.every(item => this.aIsInB(item, this.eventPathParamKeys()))) {
-            this.err = Promise.resolve(new HttpError(`Not all path paremeters are present! Required params are ${pathParams}`, 400));
+            this.retValue = Promise.reject(new HttpError(`Not all path paremeters are present! Required params are ${pathParams}`, 400));
         }
     });
 
@@ -27,7 +25,7 @@ export class ServerlessHandler {
      */
     public withRequiredPathParam = (pathParam: string) => this.apply(() => {
         if (!this.aIsInB(pathParam, this.eventPathParamKeys())) {
-            this.err = Promise.resolve(new HttpError(`Not all path paremeters are present! Required param is ${pathParam}`, 400));
+            this.retValue = Promise.reject(new HttpError(`Not all path paremeters are present! Required param is ${pathParam}`, 400));
         }
     });
 
@@ -37,7 +35,7 @@ export class ServerlessHandler {
      */
     public withSomeQueryParams = (queryParams: string[]) => this.apply(() => {
         if (!queryParams.some(queryParam => this.aIsInB(queryParam, this.eventQueryParamKeys()))) {
-            this.err = Promise.resolve(new HttpError("No valid queryparams are present!", 400));
+            this.retValue = Promise.reject(new HttpError("No valid queryparams are present!", 400));
         }
     });
 
@@ -49,7 +47,7 @@ export class ServerlessHandler {
      * @param f
      */
     public then = (f: (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>) => this.apply(() => {
-        if (!this.err) {
+        if (!this.retValue) {
             this.retValue = f(this.apiEvent);
         }
     });
@@ -61,41 +59,43 @@ export class ServerlessHandler {
      *
      * @param f
      */
-    public catch = (f: ((err: Error) => Promise<APIGatewayProxyResult>)) => this.apply(async () => {
-        if (await this.retValue) {
-            return;
-        }
-
-        const localErr = await this.err;
-
-        if (!this.err) {
-            this.retValue = Promise.resolve({
-                statusCode: 500,
-                body: "An unknown error occurred"
-            })
-        } else if ('statusCode' in this.err) {
-            let e = this.err as HttpError;
-            this.retValue = Promise.resolve({
-                statusCode: e.statusCode,
-                body: e.message
-            })
-        } else {
-            this.retValue = f(localErr as Error);
-        }
+    public catch = (f: ((err: Error) => Promise<APIGatewayProxyResult>)) => this.apply(() => {
+        this.retValue = this.retValue.catch(err => {
+            console.warn("A handled error occurred", this.apiEvent, err);
+            if (!err) {
+                // If error does not exist, return a 500 unknown error
+                return Promise.resolve({
+                    statusCode: 500,
+                    body: "An unknown error occurred"
+                })
+            } else if ('statusCode' in err) {
+                // If our error has a statusCode, it's an error we prepared ourselves. Return that exception as a HTTP response
+                let e = err as HttpError;
+                return Promise.resolve({
+                    statusCode: e.statusCode,
+                    body: e.message
+                })
+            } else {
+                // If the error exists but is not a HttpError, let the user handle it
+                return f(err);
+            }
+        });
     });
 
     /**
      * Finished the object.
      */
     public build(): Promise<APIGatewayProxyResult> {
-        if (this.retValue) {
-            return this.retValue
-        } else {
-            return Promise.resolve({
-                statusCode: 418,
-                body: "No request was prepared!"
-            })
-        }
+        return this.retValue
+            .then(result => result)
+            .catch(err => {
+                // At this point there should never be an error as the error handling needs to return a result.
+                console.error("An unkown error occurred", this.apiEvent, err);
+                return {
+                    statusCode: 500,
+                    body: "No request was prepared!"
+                }
+            });
     }
 
     /**
@@ -106,7 +106,7 @@ export class ServerlessHandler {
         try {
             f();
         } catch (err) {
-            this.err = err;
+            this.retValue = Promise.reject(err);
         }
         return this;
     }
@@ -124,7 +124,7 @@ export class ServerlessHandler {
      */
     private eventPathParams = () => {
         if (!this.apiEvent.pathParameters) {
-            this.err = Promise.resolve(new HttpError("No path parameters present!", 400))
+            this.retValue = Promise.reject(new HttpError("No path parameters present!", 400))
             return {};
         }
         return this.apiEvent.pathParameters
@@ -136,7 +136,7 @@ export class ServerlessHandler {
      */
     private eventQueryParams = () => {
         if (!this.apiEvent.queryStringParameters) {
-            this.err = Promise.resolve(new HttpError("No query params present!", 400));
+            this.retValue = Promise.reject(new HttpError("No query params present!", 400));
             return {};
         }
         return this.apiEvent.queryStringParameters;

@@ -8,15 +8,15 @@ sinon.assert.expose(chai.assert, {prefix: ""});
 
 describe('ServerlessHandler', () => {
     describe('basic', () => {
-        it('only runs then when no error has occurred', () => {
+        it('only runs then when no error has occurred', async () => {
             const expectedResult = {
                 hello: "world"
             };
             const testEvent: APIGatewayProxyEvent = {} as unknown as APIGatewayProxyEvent;
-            const thenFunc = sinon.stub().returns(expectedResult);
+            const thenFunc = sinon.stub().resolves(expectedResult);
             const errFunc = sinon.spy();
 
-            const result = new ServerlessHandler(testEvent)
+            const result = await new ServerlessHandler(testEvent)
                 .then(thenFunc)
                 .catch(errFunc)
                 .build();
@@ -27,11 +27,15 @@ describe('ServerlessHandler', () => {
         });
 
         it('executes error function when an exception occurs', async () => {
+            const thrownResult = {
+                message: "nee"
+            };
             const expectedResult = {
-                hello: "world"
+                statusCode: 200,
+                body: undefined,
             };
             const testEvent: APIGatewayProxyEvent = {} as unknown as APIGatewayProxyEvent;
-            const thenFunc = sinon.stub().rejects(expectedResult);
+            const thenFunc = sinon.stub().rejects(thrownResult);
             const errFunc = sinon.stub().resolves(expectedResult);
 
             const result = await new ServerlessHandler(testEvent)
@@ -39,26 +43,27 @@ describe('ServerlessHandler', () => {
                 .catch(errFunc)
                 .build();
 
-            expect(result).to.equal(expectedResult);
+            expect(result).to.deep.equal(expectedResult);
             sinon.assert.calledOnce(thenFunc);
             sinon.assert.calledOnce(errFunc);
         })
     })
 
     describe('withRequiredParam', () => {
-        it('works when param is present', () => {
+        it('works when param is present', async () => {
             const expectedResult = {
-                hello: "world"
+                body: "world",
+                statusCode: 200
             };
             const testEvent: APIGatewayProxyEvent = {
                 pathParameters: {
                     "test": 1
                 }
             } as unknown as APIGatewayProxyEvent;
-            const thenFunc = sinon.stub().returns(expectedResult);
+            const thenFunc = sinon.stub().resolves(expectedResult);
             const errFunc = sinon.stub().returns(expectedResult);
 
-            const result = new ServerlessHandler(testEvent)
+            const result = await new ServerlessHandler(testEvent)
                 .withRequiredPathParam("test")
                 .then(thenFunc)
                 .catch(errFunc)
