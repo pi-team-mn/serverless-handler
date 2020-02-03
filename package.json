@@ -4,18 +4,20 @@
   "author": "David Diks <ddq@mn.nl>",
   "homepage": "https://github.com/pi-team-mn/serverless-handler",
   "license": "ISC",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "files": [
-    "src/**"
+    "dist/src"
   ],
   "scripts": {
     "test": "mocha --require ts-node/register src/**.spec.ts",
     "build": "tsc",
     "deploy": "npm publish --access public",
-    "deploy:test": "npm publish -access public --dry-run"
+    "deploy:test": "npm publish -access public --dry-run",
+    "lint": "eslint src --ext .ts"
   },
   "dependencies": {
     "aws-lambda": "^1.0.5",
+    "jsonschema": "^1.2.5",
     "typescript": "^3.7.5"
   },
   "devDependencies": {
@@ -23,7 +25,10 @@
     "@types/chai": "^4.2.8",
     "@types/mocha": "^7.0.1",
     "@types/sinon": "^7.5.1",
+    "@typescript-eslint/eslint-plugin": "^2.18.0",
+    "@typescript-eslint/parser": "^2.18.0",
     "chai": "^4.2.0",
+    "eslint": "^6.8.0",
     "mocha": "^7.0.1",
     "sinon": "^8.1.1",
     "ts-node": "^8.6.2"

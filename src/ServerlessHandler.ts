@@ -1,10 +1,14 @@
 import {APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda'
+import {Schema, Validator} from 'jsonschema'
+import {HttpError} from "./HttpError";
 
 export class ServerlessHandler {
     private readonly apiEvent: APIGatewayProxyEvent;
     // @ts-ignore
-    private retValue: Promise<APIGatewayProxyResult>;
+    private retValue: Promise<APIGatewayProxyResult> = {};
 
+    // Use an any if the client uses a different aws-lambda version
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(event: APIGatewayProxyEvent | any) {
         this.apiEvent = event as APIGatewayProxyEvent;
     }
@@ -70,7 +74,7 @@ export class ServerlessHandler {
                 })
             } else if ('statusCode' in err) {
                 // If our error has a statusCode, it's an error we prepared ourselves. Return that exception as a HTTP response
-                let e = err as HttpError;
+                const e = err as HttpError;
                 return Promise.resolve({
                     statusCode: e.statusCode,
                     body: JSON.stringify({message: e.message})
@@ -80,6 +84,45 @@ export class ServerlessHandler {
                 return f(err);
             }
         });
+    });
+
+    /**
+     * Assert that the HTTP Body is valid according to the schema.
+     *
+     * @param schema A JSON Schema to validate against in Object form.
+     */
+    public withJsonSchema = (schema: Schema | Schema[]) => this.apply(() => {
+        if (!this.apiEvent.body) {
+            this.retValue = Promise.reject(new HttpError(JSON.stringify({message: "A body is required for this method, but none was present"}), 422))
+        }
+
+        const validator = new Validator();
+        const body = JSON.parse(this.apiEvent.body!);
+
+        if (Array.isArray(schema)) {
+            const validatorResults = schema.map(item => validator.validate(body, item));
+
+            if (!validatorResults.some(item => item.valid)) {
+                const responseObject = {
+                    message: 'JSON Schema was not valid!',
+                    errors: validatorResults
+                        .filter(validatorResult => !validatorResult.valid)
+                        .map(item => item.errors)
+                };
+                this.retValue = Promise.reject(new HttpError(JSON.stringify(responseObject), 422))
+            }
+        } else {
+            const result = validator.validate(body, schema);
+
+            if (!result.valid) {
+                const responseObject = {
+                    message: 'JSON Schema was not valid!',
+                    errors: [result.errors]
+                };
+
+                this.retValue = Promise.reject(new HttpError(JSON.stringify(responseObject), 422))
+            }
+        }
     });
 
     /**
@@ -124,7 +167,7 @@ export class ServerlessHandler {
      */
     private eventPathParams = () => {
         if (!this.apiEvent.pathParameters) {
-            this.retValue = Promise.reject(new HttpError("No path parameters present!", 400))
+            this.retValue = Promise.reject(new HttpError("No path parameters present!", 400));
             return {};
         }
         return this.apiEvent.pathParameters
@@ -153,13 +196,4 @@ export class ServerlessHandler {
      * @throws HttpError Http 400 if query params do not exist.
      */
     private eventQueryParamKeys = () => Object.keys(this.eventQueryParams());
-}
-
-export class HttpError extends Error {
-    public statusCode: number;
-
-    constructor(message: string, statusCode: number) {
-        super(message);
-        this.statusCode = statusCode;
-    }
 }

@@ -3,6 +3,7 @@ import {APIGatewayProxyEvent} from "aws-lambda";
 import {expect} from "chai";
 import sinon = require("sinon");
 import chai = require("chai");
+import {Schema} from "jsonschema";
 
 sinon.assert.expose(chai.assert, {prefix: ""});
 
@@ -132,7 +133,7 @@ describe('ServerlessHandler', () => {
         const result = await new ServerlessHandler(testEvent)
             .withRequiredPathParam("administratie")
             .withSomeQueryParams(['testQuery'])
-            .then(async _ => {
+            .then(async () => {
                 return {
                     statusCode: 200,
                     body: JSON.stringify({
@@ -159,10 +160,10 @@ describe('ServerlessHandler', () => {
         const result = await new ServerlessHandler(testEvent)
             .withRequiredPathParam("administratie")
             .withSomeQueryParams(['testQuery'])
-            .then(async _ => {
+            .then(async () => {
                 return Promise.reject({message: "test"})
             })
-            .catch(async _ => {
+            .catch(async () => {
                 return {
                     statusCode: 418,
                     body: "I'm a teapot"
@@ -172,5 +173,30 @@ describe('ServerlessHandler', () => {
 
         expect(result.statusCode).to.equal(418);
         expect(result)
+    })
+
+    describe('withJSONSchema', () => {
+        it('does not return an error on a valid json schema', async () => {
+            const schema: Schema = {
+                type: "number"
+            };
+            const validItem = 4;
+            const testEvent = {
+                body: validItem
+            } as unknown as APIGatewayProxyEvent;
+
+            const result = await new ServerlessHandler(testEvent)
+                .withJsonSchema(schema)
+                .then(async () => {
+                    return {
+                        statusCode: 200,
+                        body: "success"
+                    }
+                })
+                .build();
+
+            expect(result.statusCode).to.equal(200);
+            expect(result)
+        });
     })
 });
