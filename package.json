@@ -4,7 +4,7 @@
   "author": "David Diks <ddq@mn.nl>",
   "homepage": "https://github.com/pi-team-mn/serverless-handler",
   "license": "ISC",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "files": [
     "dist/src"
   ],

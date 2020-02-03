@@ -68,10 +68,7 @@ export class ServerlessHandler {
             console.warn("A handled error occurred", this.apiEvent, err);
             if (!err) {
                 // If error does not exist, return a 500 unknown error
-                return Promise.reject({
-                    statusCode: 500,
-                    body: JSON.stringify({message: "An unknown error occurred"})
-                })
+                return Promise.reject({})
             } else if ('statusCode' in err) {
                 // If our error has a statusCode, it's an error we prepared ourselves. Return that exception as a HTTP response
                 const e = err as HttpError;
