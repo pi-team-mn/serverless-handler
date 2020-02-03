@@ -130,6 +130,10 @@ export class ServerlessHandler {
      * Finished the object.
      */
     public build(): Promise<APIGatewayProxyResult> {
+        if(!this.retValue) {
+            this.retValue = Promise.reject({});
+        }
+
         return this.retValue
             .then(result => result)
             .catch(err => {

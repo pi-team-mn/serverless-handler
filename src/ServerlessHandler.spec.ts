@@ -1,9 +1,9 @@
 import {ServerlessHandler} from "./ServerlessHandler";
 import {APIGatewayProxyEvent} from "aws-lambda";
 import {expect} from "chai";
+import {Schema} from "jsonschema";
 import sinon = require("sinon");
 import chai = require("chai");
-import {Schema} from "jsonschema";
 
 sinon.assert.expose(chai.assert, {prefix: ""});
 
@@ -175,6 +175,15 @@ describe('ServerlessHandler', () => {
 
         expect(result.statusCode).to.equal(418);
         expect(result)
+    });
+
+    it('Basic Wrong Case', async () => {
+        const testEvent = {} as unknown as APIGatewayProxyEvent;
+
+        const result = await new ServerlessHandler(testEvent)
+            .build()
+
+        expect(result.statusCode).to.equal(500)
     })
 
     describe('withJSONSchema', () => {
@@ -223,5 +232,59 @@ describe('ServerlessHandler', () => {
             expect(result.statusCode).to.equal(422);
             expect(result)
         });
+
+        it('returns an error when there is no body', async () => {
+            const testEvent = {} as unknown as APIGatewayProxyEvent;
+
+            const result = await new ServerlessHandler(testEvent)
+                .withJsonSchema({})
+                .build();
+
+            expect(result.statusCode).to.equal(422)
+        })
+
+        it('validates even when more than one schema is applied', async () => {
+            const schemas: Schema[] = [
+                {type: "number"},
+                {type: "string"}
+            ];
+            const testEvent = {
+                body: 4
+            } as unknown as APIGatewayProxyEvent;
+
+            const result = await new ServerlessHandler(testEvent)
+                .withJsonSchema(schemas)
+                .then(async () => {
+                    return {
+                        statusCode: 200,
+                        body: 'success'
+                    }
+                })
+                .build()
+
+            expect(result.statusCode).to.equal(200)
+        })
+
+        it('thrown an error when none of the schemas match', async () => {
+            const schemas: Schema[] = [
+                {type: "number"},
+                {type: "string"}
+            ];
+            const testEvent = {
+                body: JSON.stringify({test: 1})
+            } as unknown as APIGatewayProxyEvent;
+
+            const result = await new ServerlessHandler(testEvent)
+                .withJsonSchema(schemas)
+                .then(async () => {
+                    return {
+                        statusCode: 200,
+                        body: 'success'
+                    }
+                })
+                .build();
+
+            expect(result.statusCode).to.equal(422)
+        })
     })
 });
