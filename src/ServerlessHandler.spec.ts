@@ -32,7 +32,7 @@ describe('ServerlessHandler', () => {
                 message: "nee"
             };
             const expectedResult = {
-                statusCode: 200,
+                statusCode: 412,
                 body: undefined,
             };
             const testEvent: APIGatewayProxyEvent = {} as unknown as APIGatewayProxyEvent;
@@ -44,7 +44,7 @@ describe('ServerlessHandler', () => {
                 .catch(errFunc)
                 .build();
 
-            expect(result).to.deep.equal(expectedResult);
+            expect(result.statusCode).to.equal(412);
             sinon.assert.calledOnce(thenFunc);
             sinon.assert.calledOnce(errFunc);
         });
@@ -75,26 +75,28 @@ describe('ServerlessHandler', () => {
             sinon.assert.notCalled(errFunc);
         });
 
-        it('does not call the error function when the path param is not present', () => {
-            const expectedResult = {
-                hello: "world"
+        it('returns a 400 if pathparamter is not present', async () => {
+            const happyResult = {
+                statusCode: 200,
+                body: "hello world"
             };
+            const sadResult = 400
             const testEvent: APIGatewayProxyEvent = {
                 pathParameters: {
                     "notMatching": 1
                 }
             } as unknown as APIGatewayProxyEvent;
-            const thenFunc = sinon.stub().returns(expectedResult);
-            const errFunc = sinon.stub().returns(expectedResult);
+            const thenFunc = sinon.stub().returns(happyResult);
+            const errFunc = sinon.stub().returns(happyResult);
 
-            const result = new ServerlessHandler(testEvent)
+            const result = await new ServerlessHandler(testEvent)
                 .withRequiredPathParam("test")
                 .then(thenFunc)
                 .catch(errFunc)
                 .build();
 
             // Since a built in handled exception occured, it should not be the expected result
-            expect(result).not.to.equal(expectedResult);
+            expect(result.statusCode).to.equal(sadResult);
             sinon.assert.notCalled(thenFunc);
             sinon.assert.notCalled(errFunc);
         });
@@ -196,6 +198,29 @@ describe('ServerlessHandler', () => {
                 .build();
 
             expect(result.statusCode).to.equal(200);
+            expect(result)
+        });
+
+        it('does return an error on an invalid json schema', async () => {
+            const schema: Schema = {
+                type: "string"
+            };
+            const validItem = 4;
+            const testEvent = {
+                body: validItem
+            } as unknown as APIGatewayProxyEvent;
+
+            const result = await new ServerlessHandler(testEvent)
+                .withJsonSchema(schema)
+                .then(async () => {
+                    return {
+                        statusCode: 200,
+                        body: "success"
+                    }
+                })
+                .build();
+
+            expect(result.statusCode).to.equal(422);
             expect(result)
         });
     })

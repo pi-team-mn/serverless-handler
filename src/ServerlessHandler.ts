@@ -5,7 +5,7 @@ import {HttpError} from "./HttpError";
 export class ServerlessHandler {
     private readonly apiEvent: APIGatewayProxyEvent;
     // @ts-ignore
-    private retValue: Promise<APIGatewayProxyResult> = {};
+    private retValue: Promise<APIGatewayProxyResult>;
 
     // Use an any if the client uses a different aws-lambda version
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,7 +50,7 @@ export class ServerlessHandler {
      *
      * @param f
      */
-    public then = (f: (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>) => this.apply(() => {
+    public then = (f: (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>) => this.apply(async () => {
         if (!this.retValue) {
             this.retValue = f(this.apiEvent);
         }
@@ -68,14 +68,14 @@ export class ServerlessHandler {
             console.warn("A handled error occurred", this.apiEvent, err);
             if (!err) {
                 // If error does not exist, return a 500 unknown error
-                return Promise.resolve({
+                return Promise.reject({
                     statusCode: 500,
                     body: JSON.stringify({message: "An unknown error occurred"})
                 })
             } else if ('statusCode' in err) {
                 // If our error has a statusCode, it's an error we prepared ourselves. Return that exception as a HTTP response
                 const e = err as HttpError;
-                return Promise.resolve({
+                return Promise.reject({
                     statusCode: e.statusCode,
                     body: JSON.stringify({message: e.message})
                 })
@@ -94,13 +94,14 @@ export class ServerlessHandler {
     public withJsonSchema = (schema: Schema | Schema[]) => this.apply(() => {
         if (!this.apiEvent.body) {
             this.retValue = Promise.reject(new HttpError(JSON.stringify({message: "A body is required for this method, but none was present"}), 422))
+            return;
         }
 
         const validator = new Validator();
         const body = JSON.parse(this.apiEvent.body!);
 
         if (Array.isArray(schema)) {
-            const validatorResults = schema.map(item => validator.validate(body, item));
+            const validatorResults = schema.map(item => validator.validate(body, item, {throwError: false}));
 
             if (!validatorResults.some(item => item.valid)) {
                 const responseObject = {
@@ -112,7 +113,7 @@ export class ServerlessHandler {
                 this.retValue = Promise.reject(new HttpError(JSON.stringify(responseObject), 422))
             }
         } else {
-            const result = validator.validate(body, schema);
+            const result = validator.validate(body, schema, {throwError: false});
 
             if (!result.valid) {
                 const responseObject = {
@@ -132,6 +133,13 @@ export class ServerlessHandler {
         return this.retValue
             .then(result => result)
             .catch(err => {
+                if('statusCode' in err) {
+                    const httpErr: HttpError = err;
+                    return {
+                        statusCode: httpErr.statusCode,
+                        body: httpErr.message
+                    }
+                }
                 // At this point there should never be an error as the error handling needs to return a result.
                 console.error("An unkown error occurred", this.apiEvent, err);
                 return {
@@ -145,7 +153,7 @@ export class ServerlessHandler {
      * Applies F to current object and then returns itself
      * @param f
      */
-    private apply(f: () => void) {
+    private apply(f: () => void): this {
         try {
             f();
         } catch (err) {
