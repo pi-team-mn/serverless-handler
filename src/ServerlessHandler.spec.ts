@@ -1,5 +1,5 @@
 import {ServerlessHandler} from "./ServerlessHandler";
-import {APIGatewayProxyEvent} from "aws-lambda";
+import type {APIGatewayProxyEvent} from "aws-lambda";
 import {expect} from "chai";
 import {Schema} from "jsonschema";
 import sinon = require("sinon");

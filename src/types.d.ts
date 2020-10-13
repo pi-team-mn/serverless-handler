@@ -1,6 +1,6 @@
 import {ServerlessHandler} from "./ServerlessHandler";
 
-import {APIGatewayProxyResult, APIGatewayProxyEvent} from "aws-lambda";
+import type {APIGatewayProxyResult, APIGatewayProxyEvent} from "aws-lambda";
 
 export {
     ServerlessHandler,
