@@ -1,10 +1,14 @@
 lib/
+src/**.d.ts
+!src/types.d.ts
+src/**.js
 
 # Created by https://www.gitignore.io/api/node
 # Edit at https://www.gitignore.io/?templates=node
 
 ### Node ###
 # Logs
+logs
 logs
 *.log
 npm-debug.log*
